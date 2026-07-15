@@ -16,7 +16,7 @@ export function useSidebarCounts(pollingIntervalMs = 15000) {
   const fetchCounts = useCallback(async () => {
     try {
       // Use cache: 'no-store' or standard cache-busting
-      const res = await fetch('/api/crm/sidebar-counts', {
+      const res = await fetch('/api/third-party-logistics/sidebar-counts', {
         headers: {
             'Cache-Control': 'no-cache',
             'Pragma': 'no-cache'
