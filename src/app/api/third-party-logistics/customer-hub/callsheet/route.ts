@@ -103,6 +103,29 @@ export async function GET(req: NextRequest) {
             filter._and?.push(searchFilter);
         }
 
+        // 1. Fetch Sales Orders with order_type = 2
+        const soData = await fetchAll<{ order_id: number; po_no: string; order_status: string }>(
+            `/items/sales_order?filter[order_type][_eq]=2&fields=order_id,po_no,order_status&limit=-1`
+        );
+        
+        if (soData.length === 0) {
+            return NextResponse.json({
+                data: [],
+                meta: {
+                    total_count: 0,
+                    page,
+                    pageSize,
+                    total_pages: 0
+                }
+            });
+        }
+
+        const validSalesOrderIds = soData.map(so => so.order_id);
+        const soMetaMap = new Map(soData.map(so => [so.order_id, { po_no: so.po_no, order_status: so.order_status }]));
+
+        // Append order_type=2 restriction
+        filter._and?.push({ sales_order_id: { _in: validSalesOrderIds } });
+
         const attachmentParams = new URL(DIRECTUS_URL + "/items/sales_order_attachment");
         attachmentParams.searchParams.append("limit", "-1"); // Fetch all to allow accurate post-grouping pagination
         attachmentParams.searchParams.append("meta", "*");
@@ -117,20 +140,6 @@ export async function GET(req: NextRequest) {
         }
 
         const attachmentJson = await attachmentRes.json();
-
-        // Prepare IDs for resolving PO Numbers mapped to existing Sales Orders
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const validSalesOrderIds = Array.from(new Set((attachmentJson.data || []).map((r: any) => r.sales_order_id).filter(Boolean)));
-        let soMetaMap = new Map<number, { po_no: string; order_status: string }>();
-        if (validSalesOrderIds.length > 0) {
-            try {
-                const soFilter = `?filter[order_id][_in]=${validSalesOrderIds.join(",")}&fields=order_id,po_no,order_status&limit=-1`;
-                const soData = await fetchAll<{ order_id: number; po_no: string; order_status: string }>(`/items/sales_order${soFilter}`);
-                soMetaMap = new Map(soData.map(so => [so.order_id, { po_no: so.po_no, order_status: so.order_status }]));
-            } catch (e) {
-                console.error("[Callsheet API] Failed to fetch sales orders for PO Number and Status resolution", e);
-            }
-        }
 
         // Build lookup maps for O(1) enrichment
         const salesmanMap = new Map<number, string>(
