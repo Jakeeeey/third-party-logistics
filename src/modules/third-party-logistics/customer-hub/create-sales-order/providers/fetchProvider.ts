@@ -28,6 +28,11 @@ export const salesOrderProvider = {
         return res.json();
     },
 
+    getRawSalesmanByCustomer: async (customerId: number): Promise<Salesman[]> => {
+        const res = await fetch(`${API_BASE}?action=raw_salesman_by_customer&customer_id=${customerId}`);
+        return res.json();
+    },
+
     getSuppliers: async (): Promise<Supplier[]> => {
         const res = await fetch(`${API_BASE}?action=suppliers`);
         return res.json();

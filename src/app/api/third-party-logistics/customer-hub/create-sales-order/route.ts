@@ -229,6 +229,21 @@ export async function GET(req: NextRequest) {
             return NextResponse.json((await cRes.json()).data || []);
         }
 
+        if (action === "raw_salesman_by_customer") {
+            const customerId = req.nextUrl.searchParams.get("customer_id");
+            if (!customerId) return NextResponse.json({ error: "customer_id required" }, { status: 400 });
+
+            const csRes = await fetch(`${DIRECTUS_URL}/items/customer_salesmen?filter[customer_id][_eq]=${customerId}&limit=-1`, { headers: fetchHeaders });
+            const csData = (await csRes.json()).data || [];
+            if (csData.length === 0) return NextResponse.json([]);
+
+            const salesmanIds = csData.map((cs: { salesman_id?: number | string }) => cs.salesman_id).filter(Boolean);
+            if (salesmanIds.length === 0) return NextResponse.json([]);
+
+            const sRes = await fetch(`${DIRECTUS_URL}/items/salesman?filter[id][_in]=${salesmanIds.join(',')}&limit=-1`, { headers: fetchHeaders });
+            return NextResponse.json((await sRes.json()).data || []);
+        }
+
         if (action === "salesman_by_customer") {
             const customerId = req.nextUrl.searchParams.get("customer_id");
             if (!customerId) return NextResponse.json({ error: "customer_id required" }, { status: 400 });
