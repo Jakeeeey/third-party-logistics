@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { salesOrderProvider } from "../../create-sales-order/providers/fetchProvider";
 import { Salesman, Customer, Supplier } from "../../create-sales-order/types";
 import { toast } from "sonner";
-import { useRouter } from "next/navigation";
+
 
 export interface UploadFile {
     id: string;
@@ -14,19 +14,15 @@ export interface UploadFile {
 }
 
 export function useSnapshotCreation() {
-    const router = useRouter();
-
     const [isInitializing, setIsInitializing] = useState(true);
     const [isSalesman, setIsSalesman] = useState(true); // Default true until checked
 
     const [customers, setCustomers] = useState<Customer[]>([]);
     const [selectedCustomerId, setSelectedCustomerId] = useState<string>("");
-    const [loadingCustomers, setLoadingCustomers] = useState(false);
     const [customerSearch, setCustomerSearch] = useState("");
 
     const [salesmen, setSalesmen] = useState<Salesman[]>([]);
     const [selectedSalesmanId, setSelectedSalesmanId] = useState<string>("");
-    const [loadingSalesmen, setLoadingSalesmen] = useState(false);
 
     const [suppliers, setSuppliers] = useState<Supplier[]>([]);
     const [selectedSupplierId, setSelectedSupplierId] = useState<string>("");
@@ -36,7 +32,7 @@ export function useSnapshotCreation() {
     const [uploads, setUploads] = useState<UploadFile[]>([]);
     const [submitting, setSubmitting] = useState(false);
 
-    const [snapshots, setSnapshots] = useState<any[]>([]);
+    const [snapshots, setSnapshots] = useState<Record<string, unknown>[]>([]);
     const [loadingSnapshots, setLoadingSnapshots] = useState(false);
 
     const fetchSnapshots = async () => {
@@ -88,13 +84,7 @@ export function useSnapshotCreation() {
 
 
 
-    const handleSalesmanChange = (id: string) => {
-        setSelectedSalesmanId(id);
-    };
 
-    const handleCustomerChange = (id: string) => {
-        setSelectedCustomerId(id);
-    };
 
     const handleFilesChange = (selectedFiles: FileList | File[] | null) => {
         if (!selectedFiles) return;
@@ -129,7 +119,7 @@ export function useSnapshotCreation() {
                         } else {
                             setUploads(prev => prev.map(item => item.id === u.id ? { ...item, progress: 0, status: 'error', error: response.error || 'Upload failed' } : item));
                         }
-                    } catch (e) {
+                    } catch {
                         setUploads(prev => prev.map(item => item.id === u.id ? { ...item, progress: 0, status: 'error', error: 'Invalid response' } : item));
                     }
                 } else {
@@ -215,18 +205,15 @@ export function useSnapshotCreation() {
             fetchSnapshots();
             
             return true;
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error("Snapshot creation error:", error);
-            toast.error(error.message || "An error occurred while uploading.");
+            const errorMessage = error instanceof Error ? error.message : "An error occurred while uploading.";
+            toast.error(errorMessage);
             return false;
         } finally {
             setSubmitting(false);
         }
     };
-
-    const selectedSalesman = salesmen.find(s => s.user_id?.toString() === selectedSalesmanId || s.id?.toString() === selectedSalesmanId);
-    const selectedCustomer = customers.find(c => c.customer_code === selectedCustomerId);
-    const selectedSupplier = suppliers.find(s => s.id?.toString() === selectedSupplierId);
 
     return {
         isInitializing,
@@ -241,7 +228,6 @@ export function useSnapshotCreation() {
         salesmen,
         selectedSalesmanId,
         setSelectedSalesmanId,
-        loadingSalesmen,
 
         suppliers,
         selectedSupplierId,

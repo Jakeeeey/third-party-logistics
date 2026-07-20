@@ -97,7 +97,7 @@ export async function POST(req: NextRequest) {
         }
 
         // 1. Create Sales Order Header
-        const soPayload: Record<string, any> = {
+        const soPayload: Record<string, unknown> = {
             order_no: orderNo,
             po_no: po_no.toString(),
             customer_code: customer_code.toString(),
@@ -159,9 +159,10 @@ export async function POST(req: NextRequest) {
         }
 
         return NextResponse.json({ success: true, order_no: orderNo, sales_order_id });
-    } catch (err: any) {
+    } catch (err: unknown) {
         console.error("Snapshot Creation Error:", err);
-        return NextResponse.json({ error: err.message || "Internal Server Error" }, { status: 500 });
+        const errorMessage = err instanceof Error ? err.message : "Internal Server Error";
+        return NextResponse.json({ error: errorMessage }, { status: 500 });
     }
 }
 
@@ -206,12 +207,12 @@ export async function GET(req: NextRequest) {
             }
 
             // They have salesman accounts. Now fetch all customers mapped to these salesmen.
-            const salesmanIds = salesmen.map((s: any) => s.id);
+            const salesmanIds = salesmen.map((s: { id: number }) => s.id);
             const csRes = await fetch(`${DIRECTUS_URL}/items/customer_salesmen?filter[salesman_id][_in]=${salesmanIds.join(",")}&limit=-1`, { headers: fetchHeaders });
-            let customers: any[] = [];
+            let customers: Record<string, unknown>[] = [];
             if (csRes.ok) {
                 const csData = (await csRes.json()).data || [];
-                const customerIds = Array.from(new Set(csData.map((cs: any) => cs.customer_id).filter(Boolean)));
+                const customerIds = Array.from(new Set(csData.map((cs: { customer_id: number }) => cs.customer_id).filter(Boolean)));
                 if (customerIds.length > 0) {
                     const cRes = await fetch(`${DIRECTUS_URL}/items/customer?filter[id][_in]=${customerIds.join(",")}&filter[isActive][_eq]=1&fields=*,province,city&limit=-1`, { headers: fetchHeaders });
                     if (cRes.ok) {
@@ -243,11 +244,11 @@ export async function GET(req: NextRequest) {
         const data = (await res.json()).data || [];
 
         // Now we should fetch attachments for these orders.
-        const orderIds = data.map((o: any) => o.order_id);
-        const salesmanIds = Array.from(new Set(data.map((o: any) => o.salesman_id).filter(Boolean)));
-        const customerCodes = Array.from(new Set(data.map((o: any) => o.customer_code).filter(Boolean)));
+        const orderIds = data.map((o: { order_id: number }) => o.order_id);
+        const salesmanIds = Array.from(new Set(data.map((o: { salesman_id: number }) => o.salesman_id).filter(Boolean)));
+        const customerCodes = Array.from(new Set(data.map((o: { customer_code: string }) => o.customer_code).filter(Boolean)));
         
-        let attachments: any[] = [];
+        let attachments: Record<string, unknown>[] = [];
         if (orderIds.length > 0) {
             const attUrl = `${DIRECTUS_URL}/items/sales_order_attachment?filter[sales_order_id][_in]=${orderIds.join(",")}&fields=id,sales_order_id,file_id,attachment_name,status`;
             const attRes = await fetch(attUrl, { headers: fetchHeaders });
@@ -256,30 +257,30 @@ export async function GET(req: NextRequest) {
             }
         }
 
-        let salesmenMap: Record<number, any> = {};
+        const salesmenMap: Record<number, unknown> = {};
         if (salesmanIds.length > 0) {
             const smUrl = `${DIRECTUS_URL}/items/salesman?filter[id][_in]=${salesmanIds.join(",")}&fields=id,salesman_name,salesman_code`;
             const smRes = await fetch(smUrl, { headers: fetchHeaders });
             if (smRes.ok) {
                 const smData = (await smRes.json()).data || [];
-                smData.forEach((s: any) => salesmenMap[s.id] = s);
+                smData.forEach((s: { id: number }) => salesmenMap[s.id] = s);
             }
         }
 
-        let customersMap: Record<string, any> = {};
+        const customersMap: Record<string, unknown> = {};
         if (customerCodes.length > 0) {
             // Encode the customer codes to avoid URI issues
             const cUrl = `${DIRECTUS_URL}/items/customer?filter[customer_code][_in]=${customerCodes.map(code => encodeURIComponent(String(code))).join(",")}&fields=id,customer_code,customer_name`;
             const cRes = await fetch(cUrl, { headers: fetchHeaders });
             if (cRes.ok) {
                 const cData = (await cRes.json()).data || [];
-                cData.forEach((c: any) => customersMap[c.customer_code] = c);
+                cData.forEach((c: { customer_code: string }) => customersMap[c.customer_code] = c);
             }
         }
 
         // Map attachments to their respective orders
-        const finalData = data.map((order: any) => {
-            const orderAttachments = attachments.filter(a => a.sales_order_id === order.order_id);
+        const finalData = data.map((order: { order_id: number; salesman_id: number; customer_code: string; [key: string]: unknown }) => {
+            const orderAttachments = attachments.filter((a: any) => a.sales_order_id === order.order_id);
             return {
                 ...order,
                 salesman: salesmenMap[order.salesman_id] || { id: order.salesman_id },
@@ -290,9 +291,10 @@ export async function GET(req: NextRequest) {
 
         return NextResponse.json(finalData);
 
-    } catch (err: any) {
+    } catch (err: unknown) {
         console.error("Snapshot Fetch Error:", err);
-        return NextResponse.json({ error: err.message || "Internal Server Error" }, { status: 500 });
+        const errorMessage = err instanceof Error ? err.message : "Internal Server Error";
+        return NextResponse.json({ error: errorMessage }, { status: 500 });
     }
 }
 

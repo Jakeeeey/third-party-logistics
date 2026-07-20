@@ -4,10 +4,10 @@ import React, { useState } from "react";
 import { DataTable } from "@/components/ui/new-data-table";
 import { ColumnDef } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
-import { Plus, Download, FileText } from "lucide-react";
+import { Plus, FileText } from "lucide-react";
 
 interface SnapshotListProps {
-    snapshots: any[];
+    snapshots: Record<string, unknown>[];
     loadingSnapshots: boolean;
     onAddSnapshot: () => void;
 }
@@ -15,7 +15,7 @@ interface SnapshotListProps {
 export function SnapshotList({ snapshots, loadingSnapshots, onAddSnapshot }: SnapshotListProps) {
     const [search, setSearch] = useState("");
 
-    const columns: ColumnDef<any>[] = [
+    const columns: ColumnDef<Record<string, unknown>>[] = [
         {
             accessorKey: "order_no",
             header: "Order No",
@@ -34,7 +34,7 @@ export function SnapshotList({ snapshots, loadingSnapshots, onAddSnapshot }: Sna
             accessorKey: "salesman",
             header: "Salesman",
             cell: ({ row }) => {
-                const salesman = row.getValue("salesman") as any;
+                const salesman = row.getValue("salesman") as { salesman_name?: string } | undefined;
                 return (
                     <div className="flex flex-col">
                         <span className="font-medium text-slate-700">{salesman?.salesman_name || "Unknown"}</span>
@@ -46,7 +46,7 @@ export function SnapshotList({ snapshots, loadingSnapshots, onAddSnapshot }: Sna
             accessorKey: "customer",
             header: "Customer",
             cell: ({ row }) => {
-                const customer = row.getValue("customer") as any;
+                const customer = row.getValue("customer") as { customer_name?: string; customer_code?: string } | undefined;
                 return (
                     <div className="flex flex-col">
                         <span className="font-medium text-slate-700">{customer?.customer_name || "Unknown"}</span>
@@ -76,7 +76,7 @@ export function SnapshotList({ snapshots, loadingSnapshots, onAddSnapshot }: Sna
             id: "actions",
             header: "Attachment",
             cell: ({ row }) => {
-                const attachments = row.original.attachments as any[];
+                const attachments = row.original.attachments as { file_id: string }[] | undefined;
                 if (!attachments || attachments.length === 0) return <span className="text-muted-foreground text-xs">No file</span>;
                 
                 return (
@@ -99,14 +99,18 @@ export function SnapshotList({ snapshots, loadingSnapshots, onAddSnapshot }: Sna
         },
     ];
 
-    const filteredSnapshots = snapshots.filter((s) => {
+    const filteredSnapshots = snapshots.filter((s: Record<string, unknown>) => {
         if (!search) return true;
         const lowerSearch = search.toLowerCase();
+        
+        const salesman = s.salesman as { salesman_name?: string } | undefined;
+        const customer = s.customer as { customer_name?: string } | undefined;
+        
         return (
-            s.order_no?.toLowerCase().includes(lowerSearch) ||
-            s.po_no?.toLowerCase().includes(lowerSearch) ||
-            s.salesman?.salesman_name?.toLowerCase().includes(lowerSearch) ||
-            s.customer?.customer_name?.toLowerCase().includes(lowerSearch)
+            (s.order_no as string)?.toLowerCase().includes(lowerSearch) ||
+            (s.po_no as string)?.toLowerCase().includes(lowerSearch) ||
+            salesman?.salesman_name?.toLowerCase().includes(lowerSearch) ||
+            customer?.customer_name?.toLowerCase().includes(lowerSearch)
         );
     });
 

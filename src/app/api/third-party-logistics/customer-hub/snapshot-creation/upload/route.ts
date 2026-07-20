@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
             headers: {
                 Authorization: `Bearer ${DIRECTUS_TOKEN}`,
             },
-            body: directusFormData as any,
+            body: directusFormData as unknown as BodyInit,
         });
 
         if (!uploadRes.ok) {
@@ -34,8 +34,9 @@ export async function POST(req: NextRequest) {
 
         const uploadData = (await uploadRes.json()).data;
         return NextResponse.json({ success: true, file_id: uploadData.id });
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("Upload route error:", error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        return NextResponse.json({ error: errorMessage }, { status: 500 });
     }
 }

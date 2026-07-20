@@ -27,7 +27,6 @@ export default function SnapshotCreationModule() {
         salesmen,
         selectedSalesmanId,
         setSelectedSalesmanId,
-        loadingSalesmen,
 
         suppliers,
         selectedSupplierId,
@@ -85,12 +84,7 @@ export default function SnapshotCreationModule() {
         }
     };
 
-    const originalHandleSubmit = handleSubmit;
-    const handleSubmitWithView = async () => {
-        await originalHandleSubmit();
-        // If successful (submitting will be false and no error thrown inside handle, wait, handleSubmit catches its own error).
-        // A simple hack is to check if selectedSalesmanId is reset to "" which we do on success.
-    };
+
     if (isInitializing) {
         return (
             <div className="flex h-[50vh] w-full items-center justify-center">
@@ -204,10 +198,10 @@ export default function SnapshotCreationModule() {
 
                         {/* Salesman Selection */}
                         <div className="space-y-2">
-                            <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Salesman {loadingSalesmen && "..."}</label>
+                            <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Salesman</label>
                             <Popover open={openSalesman} onOpenChange={setOpenSalesman}>
                                 <PopoverTrigger asChild>
-                                    <Button variant="outline" className="w-full justify-between font-normal h-12 text-sm bg-slate-50/50 border-slate-200" disabled={loadingSalesmen}>
+                                    <Button variant="outline" className="w-full justify-between font-normal h-12 text-sm bg-slate-50/50 border-slate-200">
                                         <span className="truncate">
                                             {selectedSalesmanId && salesmen.find(s => (s.id).toString() === selectedSalesmanId)
                                                 ? (() => {
