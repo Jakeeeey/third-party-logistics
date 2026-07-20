@@ -248,7 +248,7 @@ export async function GET(req: NextRequest) {
         const salesmanIds = Array.from(new Set(data.map((o: { salesman_id: number }) => o.salesman_id).filter(Boolean)));
         const customerCodes = Array.from(new Set(data.map((o: { customer_code: string }) => o.customer_code).filter(Boolean)));
         
-        let attachments: Record<string, unknown>[] = [];
+        let attachments: { sales_order_id?: number; [key: string]: unknown }[] = [];
         if (orderIds.length > 0) {
             const attUrl = `${DIRECTUS_URL}/items/sales_order_attachment?filter[sales_order_id][_in]=${orderIds.join(",")}&fields=id,sales_order_id,file_id,attachment_name,status`;
             const attRes = await fetch(attUrl, { headers: fetchHeaders });
@@ -280,7 +280,7 @@ export async function GET(req: NextRequest) {
 
         // Map attachments to their respective orders
         const finalData = data.map((order: { order_id: number; salesman_id: number; customer_code: string; [key: string]: unknown }) => {
-            const orderAttachments = attachments.filter((a: any) => a.sales_order_id === order.order_id);
+            const orderAttachments = attachments.filter(a => a.sales_order_id === order.order_id);
             return {
                 ...order,
                 salesman: salesmenMap[order.salesman_id] || { id: order.salesman_id },
